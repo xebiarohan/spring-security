@@ -43,3 +43,36 @@ spring.application.name=${SPRING_APP_NAME:springsecsection1}
         - here we can add our logic 
         - Filters are part of the servlet contianer (web server)
         - Spring security uses these same filters to implement security
+
+8. Spring security internal flow
+    - When the user enters a URL and hits enter
+    - The request is received by the filters of Servlet container
+    - Then the filters checks for the given session id is there any Authentication object present in component called Security Context
+    - Filters then extracts the user credentials from the request (from header or body based on the configuration)
+    - Converts the credetials into an Authentication object
+    - Authentication object contains fields like username, password, isAuthenticated, etc
+    - At the time of object creation the isAuthenticated value is set to false.
+    - This Aithentication object is a common contract between all the components of Spring security
+    
+    - The the filters sends this Authentication object to Authentication manager
+    - Authentication manager sends the object further to Authentication provider
+    - We can configure any Authentication provider as per our need
+    - We can have more than 1 Authentication providers
+    - Authentication manager sends the Authentication object to all the providers to check if user is valid
+
+    - Authentication provider also takes help of 2 other component like User details manager and Password Encoder
+    - User details manager is used to load the user details based on the username entered by the user.
+    - Then the Authentication provider sends the loaded user details and the password entered by the user to the password encoder to compare the passwords.
+    - When the password matches the Authentication provider sends the Authentication object back to the Authentication manager with isAuthenticated as true.
+    
+    - Authentication manager sends the same object to the Spring security filters
+    - Filters then store the Authentication result in a component named Security Context irrespective of the result
+    - Result is stored in a key value pair with Session id (for a given browser session) as key and the Authentication object as value.
+    - So that if the authentication is successful then from second request the whole authentication flow should not get executed.
+    - Then the filters sends the response back to the client
+
+
+9. AuthorizationFilter and DefaultLoginPageGeneratingFilter
+    - It is the filter that checks if a user is trying to access an endpoint without a valid session
+    - If user is not having valid credentials then it throws a Access denied exception
+    - Then the flow reaches another filter DefaultLoginPageGeneratingFilter and redirects the user to the login page
