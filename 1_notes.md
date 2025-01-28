@@ -76,3 +76,11 @@ spring.application.name=${SPRING_APP_NAME:springsecsection1}
     - It is the filter that checks if a user is trying to access an endpoint without a valid session
     - If user is not having valid credentials then it throws a Access denied exception
     - Then the flow reaches another filter DefaultLoginPageGeneratingFilter and redirects the user to the login page
+    - Once we enters the credentials and presses enter then the flow goes to AbstractAuthenticationProcessionFilter (abstract class)
+
+10. How HMI handles requests after successful login
+    - In the cookies there is a cookie named JSESSIONID
+    - With every request from the HMI the ID goes to the backend filters
+    - Backend filters checks if there is a valid session present for this given ID in security context
+    - If it is present then it forwards the request to the correct servlet
+    - Else it will forwards the request to DefaultLoginPageGeneratingFilter and returns the login page.
