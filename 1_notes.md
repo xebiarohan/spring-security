@@ -2,7 +2,7 @@
     - https://github.com/eazybytes/spring-security
 
 2. In application.properties we can have dynamic application name
-    - here if the APRING_APP_NAME is passed then that will be the app name else springsecsection1 will be the app name
+    - here if the SPRING_APP_NAME is passed then that will be the app name else springsecsection1 will be the app name
     - we can do this for all the properties in application.properties file
 ```
 spring.application.name=${SPRING_APP_NAME:springsecsection1}
@@ -18,7 +18,7 @@ spring.application.name=${SPRING_APP_NAME:springsecsection1}
 
 ```
 
-4. If you add the above dependency and run the application, then when you enter any url, you will get a login page
+4. If you add the above dependency and run the application, then for everyurl you we try to access, we will get a login page
     - the default credentials are username : user and the password will come in the logs on startup
     - The code of how the default user and password is generated is present in SecurityProperties.java (spring framework class)
     - Password is random UUID
@@ -41,20 +41,21 @@ spring.application.name=${SPRING_APP_NAME:springsecsection1}
     - Then servlet sends ServletResponse response object, then Servlet container changes this object back into HTTP/HTTPS response object and sends back to the browser.
     - Role of filters - All the requests and response between the client (browser) and the servlets are intercepted using the filters.
         - here we can add our logic 
-        - Filters are part of the servlet contianer (web server)
+        - Filters are part of the servlet containers (web server)
         - Spring security uses these same filters to implement security
 
 8. Spring security internal flow
     - When the user enters a URL and hits enter
     - The request is received by the filters of Servlet container
-    - Then the filters checks for the given session id is there any Authentication object present in component called Security Context
-    - Filters then extracts the user credentials from the request (from header or body based on the configuration)
-    - Converts the credetials into an Authentication object
+    - Then the filters checks for the given session id (JSessionID) is there any Authentication object present in component called Security Context
+    - If present then forwards the request to its specific servlet else
+    - Filters extracts the user credentials from the request (from header or body based on the configuration)
+    - Converts the credetials into an Authentication object using Authentication interface (it has many implementation)
     - Authentication object contains fields like username, password, isAuthenticated, etc
     - At the time of object creation the isAuthenticated value is set to false.
-    - This Aithentication object is a common contract between all the components of Spring security
+    - This Authentication object is a common contract between all the components of Spring security
     
-    - The the filters sends this Authentication object to Authentication manager
+    - Then the filters sends this Authentication object to Authentication manager
     - Authentication manager sends the object further to Authentication provider
     - We can configure any Authentication provider as per our need
     - We can have more than 1 Authentication providers
@@ -63,13 +64,13 @@ spring.application.name=${SPRING_APP_NAME:springsecsection1}
     - Authentication provider also takes help of 2 other component like User details manager and Password Encoder
     - User details manager is used to load the user details based on the username entered by the user.
     - Then the Authentication provider sends the loaded user details and the password entered by the user to the password encoder to compare the passwords.
-    - When the password matches the Authentication provider sends the Authentication object back to the Authentication manager with isAuthenticated as true.
+    - When the password matches, the Authentication provider sends the Authentication object back to the Authentication manager with isAuthenticated as true.
     
     - Authentication manager sends the same object to the Spring security filters
     - Filters then store the Authentication result in a component named Security Context irrespective of the result
     - Result is stored in a key value pair with Session id (for a given browser session) as key and the Authentication object as value.
     - So that if the authentication is successful then from second request the whole authentication flow should not get executed.
-    - Then the filters sends the response back to the client
+    - Then the filters sends the request furtherr to the servlet to handle the request
 
 
 9. AuthorizationFilter and DefaultLoginPageGeneratingFilter
@@ -82,5 +83,5 @@ spring.application.name=${SPRING_APP_NAME:springsecsection1}
     - In the cookies there is a cookie named JSESSIONID
     - With every request from the HMI the ID goes to the backend filters
     - Backend filters checks if there is a valid session present for this given ID in security context
-    - If it is present then it forwards the request to the correct servlet
+    - If it is present then it forwards the request to the corresponding servlet
     - Else it will forwards the request to DefaultLoginPageGeneratingFilter and returns the login page.

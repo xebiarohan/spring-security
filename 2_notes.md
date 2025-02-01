@@ -37,7 +37,7 @@ Default config in SpringBootWebSecurityConfiguration
 
 3. By default we get both types of authentication
     -  http.formLogin(Customizer.withDefaults()); this is used to enable the login form based authentication
-    -  http.httpBasic(Customizer.withDefaults()); this is used to enable basic authentication (called by other applications or components and not by any user)
+    -  http.httpBasic(Customizer.withDefaults()); this is used to enable basic authentication (called by other applications or components with authorization header)
     -  we can enable or disable these as per our requirement
     - To disable it remove the withDefaults() method and disable it
     - we can more other different types of login ways like with JWT token.
