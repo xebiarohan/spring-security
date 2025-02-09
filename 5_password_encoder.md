@@ -68,3 +68,11 @@
      - Make Hash functionn slower, so that hacker cannot try millions of random passowrd to guess the right password
      - Bcrypt is one such algorithms (Scrypt, argon2 are other algo) that intentionally slows the hashing.
      - These algo needs lot of CPU and RAM memory
+
+5. Passowrd encoder
+   - Contains methods 
+     - encode - used to encode the password entered by the user by adding Salt value to it
+     - matches - used to match the password at the time of login and the real passowrd that is saved in database
+     - upgradeEncoding - if set to true then it will encode the already encoded password (double encoding)
+   - PasswordEncoder is an interface, it has concrete classes like BcryptPasswordEncoder, Argon2PasswordEncoder, etc.
+   - Bcrypt is a good hashing encoder because it takes lot of RAM and CPU, and take some time to copute the result.
