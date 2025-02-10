@@ -27,7 +27,7 @@ public class EazyBankUsernamePasswordAuthenticationProvider implements Authentic
         String username = authentication.getName();
         String password = authentication.getCredentials().toString();
         UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-        return new UsernamePasswordAuthenticationToken(username, password, userDetails.getAuthorities());   
+        return new UsernamePasswordAuthenticationToken(username, password, userDetails.getAuthorities());
     }
 
     @Override
