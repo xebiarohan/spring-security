@@ -158,3 +158,169 @@ public class CustomAccessDenialException implements AccessDeniedHandler {
     }
 
 ```
+
+6. Session timeout and invalid session configuration
+   - When ever a user logs in the default timeout of the session is 30 minutes (JSESSION timeout value)
+   - We can customize this timeout value using config in application.properties
+   - Cannot set time less than 2 minutes
+   - It is the idle time and does not includes the time when user is actively doing some actions.
+   - So by default after session expiry the user is redirected to login page on any new request
+   - We can override this to add a custom endpoint where the user will be redirected on session expiry
+
+```
+    server.servlet.session.timeout=${SESSION_TIMEOUT:20m}
+
+```
+  
+```
+    @Bean
+    SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
+        http
+                .sessionManagement(smc -> smc.invalidSessionUrl("/invalidSession"))
+                .requiresChannel(rcc -> rcc.anyRequest().requiresSecure())
+                .csrf(csrfConfig -> csrfConfig.disable())
+                .authorizeHttpRequests((requests) -> requests
+                .requestMatchers("/myAccount","/myBalance").authenticated()
+                .requestMatchers("/myCards","/error","/register", "invalidSession").permitAll());
+       // http.formLogin(formLoginConfig -> formLoginConfig.disable());
+        http.formLogin(Customizer.withDefaults());
+        http.httpBasic(hbc -> hbc.authenticationEntryPoint(new CustomBasicAuthenticationEntryPoint()));
+        http.exceptionHandling(handler -> {
+            handler.accessDeniedHandler(new CustomAccessDenialException());
+        });
+        return http.build();
+    }
+```
+
+7. Concurrent Session control configuration
+   - By default we can have as many concurrent session as we want for a given user
+   - We can set the maxSession Config
+   - If we set the maximumSession to 1 then we can have max of 1 session per user
+   - If we try logging in the 2nd session, the 1st one expires with error "This session has been expired (possibly due to multiple concurrent logins being attempted as the same user)."
+   - If we want to prevent the second session login then we can do that using maxSessionPreventsLogin
+
+```
+    @Bean
+    SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
+        http
+                .sessionManagement(smc -> smc.invalidSessionUrl("/invalidSession").maximumSessions(1))
+                .requiresChannel(rcc -> rcc.anyRequest().requiresSecure())
+                .csrf(csrfConfig -> csrfConfig.disable())
+                .authorizeHttpRequests((requests) -> requests
+                .requestMatchers("/myAccount","/myBalance").authenticated()
+                .requestMatchers("/myCards","/error","/register", "/invalidSession").permitAll());
+       // http.formLogin(formLoginConfig -> formLoginConfig.disable());
+        http.formLogin(Customizer.withDefaults());
+        http.httpBasic(hbc -> hbc.authenticationEntryPoint(new CustomBasicAuthenticationEntryPoint()));
+        http.exceptionHandling(handler -> {
+            handler.accessDeniedHandler(new CustomAccessDenialException());
+        });
+        return http.build();
+    }
+
+```
+
+```
+    @Bean
+    SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
+        http
+                .sessionManagement(smc -> smc.invalidSessionUrl("/invalidSession").maximumSessions(1).maxSessionsPreventsLogin(true))
+                .requiresChannel(rcc -> rcc.anyRequest().requiresInsecure())
+                .csrf(csrfConfig -> csrfConfig.disable())
+                .authorizeHttpRequests((requests) -> requests
+                        .requestMatchers("/myAccount", "/myBalance").authenticated()
+                        .requestMatchers("/myCards", "/error", "/register","/invalidSession").permitAll());
+        // http.formLogin(formLoginConfig -> formLoginConfig.disable());
+        http.formLogin(Customizer.withDefaults());
+        http.httpBasic(hbc -> hbc.authenticationEntryPoint(new CustomBasicAuthenticationEntryPoint()));
+        http.exceptionHandling(handler -> {
+            handler.accessDeniedHandler(new CustomAccessDenialException());
+        });
+        return http.build();
+    }
+
+```
+
+8. Session Hijacking
+   - It is slealing the JSESSION id from the browser, URL heades or the network
+   - If we HTTPS then hackers cannot steal it from the network between the client application and the backend application
+   - Other approach is to limit the session timeout to a small value like 10 minutes
+
+9. Session fixation
+    - In this the malicious attacker creates a session in an application and then persuade another user to login with the same session like by sharing a link containing a session id.
+    - By default spring security takes care of the session fixation attack using 3 different strategies
+      - changeSessionID - Does not create a new session, just changes the sessionID on login using link with sessionID 
+      - newSession - It creates a complete new session
+      - migrateSession - Creates a new session and migrate all the information from the session present in the link and gives new session ID
+    - By default the spring security uses the changeSessionId strategy
+
+```
+
+    @Bean
+    SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
+        http
+                .sessionManagement(smc -> {
+                    smc.invalidSessionUrl("/invalidSession").maximumSessions(1).maxSessionsPreventsLogin(true);
+                    smc.sessionFixation(SessionManagementConfigurer.SessionFixationConfigurer::changeSessionId);
+
+                })
+                .requiresChannel(rcc -> rcc.anyRequest().requiresSecure())
+                .csrf(csrfConfig -> csrfConfig.disable())
+                .authorizeHttpRequests((requests) -> requests
+                .requestMatchers("/myAccount","/myBalance").authenticated()
+                .requestMatchers("/myCards","/error","/register", "/invalidSession").permitAll());
+       // http.formLogin(formLoginConfig -> formLoginConfig.disable());
+        http.formLogin(Customizer.withDefaults());
+        http.httpBasic(hbc -> hbc.authenticationEntryPoint(new CustomBasicAuthenticationEntryPoint()));
+        http.exceptionHandling(handler -> {
+            handler.accessDeniedHandler(new CustomAccessDenialException());
+        });
+        return http.build();
+    }
+
+```
+
+10. Authentication enevts
+    - When a user is successfully logged in or failed to login then we can catch an authentication event to perform some actions like sending email
+
+```
+    @Component
+    @Slf4j  // from lombok library
+    public class AuthenticationEvents {
+
+        @EventListener
+        public void onSuccess(AuthenticationSuccessEvent event) {
+            log.info("Login successful for the user : {}", event.getAuthentication().getName());
+        }
+
+        @EventListener
+        public void onFailure(AbstractAuthenticationFailureEvent failureEvent) {
+            log.error("Login failed for the user : {} due to : {}", failureEvent.getAuthentication().getName(),
+                    failureEvent.getException().getMessage());
+        }
+    }
+```
+
+11. Form login configuration
+    - Configuring different login config using SecurityFilterChain
+
+```
+    @Bean
+    SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
+
+        http.csrf((csrf) -> csrf.disable())
+                .authorizeHttpRequests((requests) -> requests.requestMatchers("/dashboard").authenticated()
+                        .requestMatchers("/", "/home", "/holidays/**", "/contact", "/saveMsg",
+                                "/courses", "/about", "/assets/**", "/login/**").permitAll())
+                .formLogin(flc -> flc.loginPage("/login").usernameParameter("userid").passwordParameter("secretPwd")
+                        .defaultSuccessUrl("/dashboard").failureUrl("/login?error=true")
+                        .successHandler(authenticationSuccessHandler).failureHandler(authenticationFailureHandler))
+                .logout(loc -> loc.logoutSuccessUrl("/login?logout=true").invalidateHttpSession(true).clearAuthentication(true)
+                        .deleteCookies("JSESSIONID"))
+                .httpBasic(Customizer.withDefaults());
+
+
+        return http.build();
+    }
+
+```
