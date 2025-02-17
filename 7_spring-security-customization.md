@@ -324,3 +324,28 @@ public class CustomAccessDenialException implements AccessDeniedHandler {
     }
 
 ```
+
+12. SecurityContext
+    - Stores the authenticated user details with its JSESSION ID
+    - Authentication object contains principal, credentials, authorities and isAuthenticated
+    - SecurityContext is maintained by the SecurityContextHolder class (CRUD operations and other utility methods)
+    - Holding strategy for the security SecurityContext 
+        - MODE_THREADLOCAL (default) - Allows each thread to store its own details in security context 
+        - MODE_INHERITABLETHREADLOCAL - One thread can inhirit the security context details of another one
+        - MODE_GLOBAL - All the threads see the same Security context instance (not for web development)
+
+13. Loading login user details
+    - Using th SecurityContextHolder class
+    - Or take Authentication as the parameter in controller class
+
+```
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    authentication.getName();
+
+    OR
+
+    @GetMapping("/username)
+    public String currentUsername(Authentication authentication) {
+        return authentication.getName();
+    }
+```
