@@ -22,6 +22,7 @@ public class EazyBankUsernamePasswordAuthenticationProvider implements Authentic
 
     private final PasswordEncoder passwordEncoder;
 
+    // This one is for non prod profile that is why there is no password checks
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
         String username = authentication.getName();

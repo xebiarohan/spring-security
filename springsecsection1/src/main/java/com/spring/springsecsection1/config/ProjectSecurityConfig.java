@@ -53,7 +53,12 @@ public class ProjectSecurityConfig {
 
                 .addFilterAfter(new CsrfCookieFilter(), BasicAuthenticationFilter.class)
                 .authorizeHttpRequests((requests) -> requests
-                        .requestMatchers("/myAccount", "/myBalance","/user","/contact").authenticated()
+                        .requestMatchers("/myAccount").hasRole("USER")
+                        .requestMatchers("/myBalance").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers("/myLoans").hasRole("USER")
+                        .requestMatchers("/myCards").hasRole("USER")
+                        .requestMatchers("/user").authenticated()
+                      //  .requestMatchers("/myAccount", "/myBalance","/user","/contact").authenticated()
                         .requestMatchers("/myCards", "/error", "/register","/invalidSession","/notices").permitAll());
         // http.formLogin(formLoginConfig -> formLoginConfig.disable());
         http.formLogin(Customizer.withDefaults());
