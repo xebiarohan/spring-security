@@ -56,7 +56,25 @@ public class EazyBankUserDetailsService implements UserDetailsService {
         .requestMatchers("/contact","/error","/register", "/invalidSession").permitAll());
 ```
 
-```Now
+```NOW
+    /*.requestMatchers("/myAccount").hasAuthority("VIEWACCOUNT")
+    .requestMatchers("/myBalance").hasAnyAuthority("VIEWBALANCE", "VIEWACCOUNT")
+    .requestMatchers("/myLoans").hasAuthority("VIEWLOANS")
+    .requestMatchers("/myCards").hasAuthority("VIEWCARDS")*/
+
+```
+
+
+4. There is a slightly difference between the Authority and Role
+   - Authority is the access to do something like creating user, deleting user, reading user details, etc
+   - Role is the designation like ADMIN, READ_ONLY_USER, SUPER_USER, etc
+   - Authorities are assigned to a role
+   - In Spring security we have to store the roles with ROLE_ as prefix example ROLE_ADMIN, ROLE_USER, etc
+   - We can update this prefix if we want by creating a bean of GrantedAuthorityDefaults
+   - In hasRole and hasAnyRole we dont need to add the prefix (need to add it in database)
+
+
+```with Role
     .authorizeHttpRequests((requests) -> requests
             .requestMatchers("/myAccount").hasRole("USER")
             .requestMatchers("/myBalance").hasAnyRole("USER", "ADMIN")
@@ -67,9 +85,25 @@ public class EazyBankUserDetailsService implements UserDetailsService {
             .requestMatchers("/myCards", "/error", "/register","/invalidSession","/notices").permitAll());
 ```
 
-4. There is a slightly difference between the Authority and Role
-   - Authority is the access to do something like creating user, deleting user, reading user details, etc
-   - Role is the designation like ADMIN, READ_ONLY_USER, SUPER_USER, etc
-   - Authorities are assigned to a role
-   - In Spring security we have to store the roles with ROLE_ as prefix example ROLE_ADMIN, ROLE_USER, etc
-   - We can update this prefix if we want by creating a bean of GrantedAuthorityDefaults
+5. Listening to authorization event
+   - When ever the authorization fails there is an event published (AuthorizationDeniedEvent) by the spring security
+   - we can listen to it and can perform some action
+   - we can also listen to the AuthorizationGrantedEvent but it will be too much logs to handle.
+
+```
+@Component
+@Slf4j  // from lombok library
+public class AuthenticationEvents {
+
+    @EventListener
+    public void onSuccess(AuthenticationSuccessEvent event) {
+        log.info("Login successful for the user : {}", event.getAuthentication().getName());
+    }
+
+    @EventListener
+    public void onFailure(AbstractAuthenticationFailureEvent failureEvent) {
+        log.error("Login failed for the user : {} due to : {}", failureEvent.getAuthentication().getName(),
+                failureEvent.getException().getMessage());
+    }
+}
+```

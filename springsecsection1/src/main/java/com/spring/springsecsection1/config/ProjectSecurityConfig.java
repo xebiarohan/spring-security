@@ -2,7 +2,9 @@ package com.spring.springsecsection1.config;
 
 import com.spring.springsecsection1.exceptionhandling.CustomAccessDenialException;
 import com.spring.springsecsection1.exceptionhandling.CustomBasicAuthenticationEntryPoint;
+import com.spring.springsecsection1.filter.AuthoritiesLoggingAfterFilter;
 import com.spring.springsecsection1.filter.CsrfCookieFilter;
+import com.spring.springsecsection1.filter.RequestValidationFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -52,6 +54,8 @@ public class ProjectSecurityConfig {
                         .ignoringRequestMatchers("/contact","/error","/register"))
 
                 .addFilterAfter(new CsrfCookieFilter(), BasicAuthenticationFilter.class)
+                .addFilterBefore(new RequestValidationFilter(),BasicAuthenticationFilter.class)
+                .addFilterAfter(new AuthoritiesLoggingAfterFilter(), BasicAuthenticationFilter.class)
                 .authorizeHttpRequests((requests) -> requests
                         .requestMatchers("/myAccount").hasRole("USER")
                         .requestMatchers("/myBalance").hasAnyRole("USER", "ADMIN")
