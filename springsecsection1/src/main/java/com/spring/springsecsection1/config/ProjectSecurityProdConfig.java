@@ -2,9 +2,7 @@ package com.spring.springsecsection1.config;
 
 import com.spring.springsecsection1.exceptionhandling.CustomAccessDenialException;
 import com.spring.springsecsection1.exceptionhandling.CustomBasicAuthenticationEntryPoint;
-import com.spring.springsecsection1.filter.AuthoritiesLoggingAfterFilter;
-import com.spring.springsecsection1.filter.CsrfCookieFilter;
-import com.spring.springsecsection1.filter.RequestValidationFilter;
+import com.spring.springsecsection1.filter.*;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -25,6 +23,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 
 import java.util.Collections;
+import java.util.List;
 
 @Configuration
 @Profile("prod")
@@ -33,7 +32,7 @@ public class ProjectSecurityProdConfig {
     @Bean
     SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
         CsrfTokenRequestAttributeHandler csrfTokenRequestAttributeHandler = new CsrfTokenRequestAttributeHandler();
-        http.securityContext(context -> context.requireExplicitSave(false))
+        http
                 .cors(corsConfig -> corsConfig.configurationSource(new CorsConfigurationSource() {
                     @Override
                     public CorsConfiguration getCorsConfiguration(HttpServletRequest request) {
@@ -42,6 +41,7 @@ public class ProjectSecurityProdConfig {
                         config.setAllowedMethods(Collections.singletonList("*"));
                         config.setAllowCredentials(true);
                         config.setAllowedHeaders(Collections.singletonList("*"));
+                        config.setExposedHeaders(List.of("Authorization"));
                         config.setMaxAge(3600L);
                         return config;
                     }
@@ -49,7 +49,7 @@ public class ProjectSecurityProdConfig {
                 .sessionManagement(smc -> {
                     smc.invalidSessionUrl("/invalidSession").maximumSessions(1).maxSessionsPreventsLogin(true);
                     smc.sessionFixation(SessionManagementConfigurer.SessionFixationConfigurer::changeSessionId);
-                    smc.sessionCreationPolicy(SessionCreationPolicy.ALWAYS);
+                    smc.sessionCreationPolicy(SessionCreationPolicy.STATELESS);
 
                 })
                 .requiresChannel(rcc -> rcc.anyRequest().requiresSecure())
@@ -59,6 +59,9 @@ public class ProjectSecurityProdConfig {
                 .addFilterAfter(new CsrfCookieFilter(), BasicAuthenticationFilter.class)
                 .addFilterBefore(new RequestValidationFilter(),BasicAuthenticationFilter.class)
                 .addFilterAfter(new AuthoritiesLoggingAfterFilter(), BasicAuthenticationFilter.class)
+                .addFilterAt(new AuthoritiesLoggingAtFilter(),BasicAuthenticationFilter.class)
+                .addFilterAfter(new JwtTokenGenerationFilter(), BasicAuthenticationFilter.class)
+                .addFilterBefore(new JWTTokenValidatorFilter(),BasicAuthenticationFilter.class)
                 .authorizeHttpRequests((requests) -> requests
                         .requestMatchers("/myAccount").hasRole("USER")
                         .requestMatchers("/myBalance").hasAnyRole("USER", "ADMIN")

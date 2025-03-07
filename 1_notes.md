@@ -18,12 +18,12 @@ spring.application.name=${SPRING_APP_NAME:springsecsection1}
 
 ```
 
-4. If you add the above dependency and run the application, then for everyurl you we try to access, we will get a login page
+1. If you add the above dependency and run the application, then for every url that we try to access, we will get a login page
     - the default credentials are username : user and the password will come in the logs on startup
     - The code of how the default user and password is generated is present in SecurityProperties.java (spring framework class)
     - Password is random UUID
 
-5. We can override the default username and password in the application.properties
+2. We can override the default username and password in the application.properties
 
 ```
     spring.security.user.name=${SECURITY_USERNAME:admin}
@@ -32,7 +32,7 @@ spring.application.name=${SPRING_APP_NAME:springsecsection1}
 
 6. Security
     - We need security to protect important information like credit card details, customer personal information, etc
-    - Only authenticated user can able to see their own information
+    - Only authenticated user can access the data
     - Sometimes the application is secured to protect there internal flows like OPT generation flow, etc
     - With security we can avoid CSRF attacks, Session fixation attacks, XSS, CORS, etc.
 
