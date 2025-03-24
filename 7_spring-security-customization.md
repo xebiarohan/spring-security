@@ -242,8 +242,8 @@ public class CustomAccessDenialException implements AccessDeniedHandler {
 ```
 
 8. Session Hijacking
-   - It is slealing the JSESSION id from the browser, URL heades or the network
-   - If we HTTPS then hackers cannot steal it from the network between the client application and the backend application
+   - It is stealing the JSESSION id from the browser, URL heades or the network
+   - If we use HTTPS then hackers cannot steal it from the network between the client application and the backend application
    - Other approach is to limit the session timeout to a small value like 10 minutes
 
 9. Session fixation
@@ -280,7 +280,7 @@ public class CustomAccessDenialException implements AccessDeniedHandler {
 
 ```
 
-10. Authentication enevts
+10. Authentication events
     - When a user is successfully logged in or failed to login then we can catch an authentication event to perform some actions like sending email
 
 ```
