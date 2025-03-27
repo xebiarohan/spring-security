@@ -71,5 +71,40 @@
          - Auth server stores the code_challenge value and on authentication shares the AUTHORIZATION_CODE with the client
          - When the client server sends the request to get the access token, it sends the code_verifier with the AUTHORIZATION_CODE
          - Auth server uses the same encoding algo (SHA256) and matches it with stored code_challenge value
-         - 
+
+11. Client credentials Grant type
+    1. When no user is involved and when 2 backend application wants to communicate
+    2. Client sends the request to the Auth server with client ID and client secret
+    3. Auth server validates the client credentials and issues an access token
+    4. Client application uses that token to communicate with the resource server
+    5. Resource server validates the token and sends the response to the client application
+
+12. Refresh token Grant type
+    1.  When we use the Authorization grant type flow or PKCE grant type flow, we get refresh token along with access token
+    2.  When the access token gets expired then this refresh token is used to generate a new access token using the refresh grant type flow
+    3.  If we send offline_access in the scope object in the request to Auth server then it will generate a refresh token that never expires
+    4.  Flow
+        -  Client application sends a request to the resource server with the access token
+        -  Resource server validates the access token, in case it is expired, it returns 403 forbidden error message
+        -  Now the client application sends a request to the Auth server with the refresh token to get a new set of tokens
+        -  Auth server validates the refresh token and shares a new pair of access token and refresh token
+        -  Client application can use the new access token to send a new request to the resource server
   
+13. How resource server validates the token 
+    - There are 2 ways we can validate the access token at the resource server end
+      - Validating it remotely (not the best approach)
+        - Resource server sends the access token to the Auth server for validation
+      - Validating it locally
+        - Token must be of type JWT
+        - Auth server uses a private key to generate the tokens
+        - Corresponding to that private key there will be a public key, which the resource server needs to download during the startup of the application
+        - Using this public key the resource server can validate the digital signature of the token is valid or not
+        - At the startup of the application the resource server sends a request to the Auth server to download the public key
+
+14. OpenID connect
+    - It is a protocol that sits on top OAuth 2.0
+    - OAuth 2.0 primiary role is to provide Authorization using the scopes
+    - To use the OAuth 2.0 for authentication, a wrapper was intorduced - OpenID connect
+    - To enable the OpenID connect, we just have to add 'openid' as a scope value
+    - Auth server will start sending ID token along with access token and refresh token
+    - ID token contains the user details that can be used for the authorization

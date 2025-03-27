@@ -5,7 +5,7 @@
 2. How Authorities are stored in Spring security
     - GrantedAuthority is an interface that needs to be followed if we want to store any roles or authorities
     - SimpleGrantedAuthority is an example of implemetation
-    - When some needs to store the authorities/roles then need to create an object of SimpleGrantedAuthority class
+    - For storing the authorities/roles then we need to create an object of SimpleGrantedAuthority class
     - At the login time we loads the user stored in database using getUserByUsername, there we have to pass the authorities
     - example below
     - We can have multiple roles/authorities for a single user
@@ -68,7 +68,7 @@ public class EazyBankUserDetailsService implements UserDetailsService {
 4. There is a slightly difference between the Authority and Role
    - Authority is the access to do something like creating user, deleting user, reading user details, etc
    - Role is the designation like ADMIN, READ_ONLY_USER, SUPER_USER, etc
-   - Authorities are assigned to a role
+   - Authorities are assigned to the roles
    - In Spring security we have to store the roles with ROLE_ as prefix example ROLE_ADMIN, ROLE_USER, etc
    - We can update this prefix if we want by creating a bean of GrantedAuthorityDefaults
    - In hasRole and hasAnyRole we dont need to add the prefix (need to add it in database)
