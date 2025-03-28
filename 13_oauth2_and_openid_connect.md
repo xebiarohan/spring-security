@@ -108,3 +108,4 @@
     - To enable the OpenID connect, we just have to add 'openid' as a scope value
     - Auth server will start sending ID token along with access token and refresh token
     - ID token contains the user details that can be used for the authorization
+    - OIDC exposes an '/userinfo' endpoint to get the user details (same as in the ID token)
