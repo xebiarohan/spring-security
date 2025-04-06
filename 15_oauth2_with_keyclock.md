@@ -26,3 +26,87 @@
 ```
 
 9. As we are doing the authentication using the Keycloak and not doing it locally. So we dont need custom UserDetailsService and AuthenticationProvider
+
+10. We need to create a keycloak role converter
+
+```
+    public class KeycloakRoleConverter implements Converter<Jwt, Collection<GrantedAuthority>> {
+
+        @Override
+        public Collection<GrantedAuthority> convert(Jwt source) {
+            Map<String, Object> realmAccess = (Map<String, Object>) source.getClaims().get("realm_access");
+            if (realmAccess == null || realmAccess.isEmpty()) {
+                return new ArrayList<>();
+            }
+            Collection<GrantedAuthority> returnValue = ((List<String>) realmAccess.get("roles"))
+                    .stream().map(roleName -> "ROLE_" + roleName)
+                    .map(SimpleGrantedAuthority::new)
+                    .collect(Collectors.toList());
+            return returnValue;
+        }
+    }
+```
+
+11. Add the KeycloakRoleConverter config in the SecurityChainFilter
+    1.  Here we added a JwtAuthenticationConverter and add the KeycloakRoleConverter to it
+    2.  Removed the form login and basic login and add oath2 resource server config
+
+```
+    @Bean
+    SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
+        JwtAuthenticationConverter jwtAuthenticationConverter = new JwtAuthenticationConverter();
+        jwtAuthenticationConverter.setJwtGrantedAuthoritiesConverter(new KeycloakRoleConverter());
+
+        CsrfTokenRequestAttributeHandler csrfTokenRequestAttributeHandler = new CsrfTokenRequestAttributeHandler();
+        http
+                .cors(corsConfig -> corsConfig.configurationSource(new CorsConfigurationSource() {
+                    @Override
+                    public CorsConfiguration getCorsConfiguration(HttpServletRequest request) {
+                        CorsConfiguration config = new CorsConfiguration();
+                        config.setAllowedOrigins(Collections.singletonList("https://localhost:4200"));
+                        config.setAllowedMethods(Collections.singletonList("*"));
+                        config.setAllowCredentials(true);
+                        config.setAllowedHeaders(Collections.singletonList("*"));
+                        config.setExposedHeaders(List.of("Authorization"));
+                        config.setMaxAge(3600L);
+                        return config;
+                    }
+                }))
+                .sessionManagement(smc -> {
+                    smc.invalidSessionUrl("/invalidSession").maximumSessions(1).maxSessionsPreventsLogin(true);
+                    smc.sessionFixation(SessionManagementConfigurer.SessionFixationConfigurer::changeSessionId);
+                    smc.sessionCreationPolicy(SessionCreationPolicy.STATELESS);
+
+                })
+                .requiresChannel(rcc -> rcc.anyRequest().requiresSecure())
+                .csrf(csrfConfig -> csrfConfig.csrfTokenRequestHandler(csrfTokenRequestAttributeHandler)
+                        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                        .ignoringRequestMatchers("/contact","/error","/register"))
+                .addFilterAfter(new CsrfCookieFilter(), BasicAuthenticationFilter.class)
+                .authorizeHttpRequests((requests) -> requests
+                        .requestMatchers("/myAccount").hasRole("USER")
+                        .requestMatchers("/myBalance").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers("/myLoans").hasRole("USER")
+                        .requestMatchers("/myCards").hasRole("USER")
+                .requestMatchers("/contact","/error","/register").permitAll());
+
+        http.oauth2ResourceServer(rsc -> rsc.jwt(jwtConfigurer ->
+                jwtConfigurer.jwtAuthenticationConverter(jwtAuthenticationConverter)));
+
+        http.exceptionHandling(handler -> {
+            handler.accessDeniedHandler(new CustomAccessDenialException());
+        });
+        return http.build();
+    }
+
+```
+
+12. Now we have to add config so that the resource server can communicate with the auth server
+    - In application.properties we have to following config
+    - Copy the URL from the keycloak
+      - keycloak - realm settings - openID endpoint configuration - jwks-uri
+      - This is the URL of the public key of the auth server, that will be used for the validation of the token
+
+```
+  spring.security.oauth2.resourceserver.jwt.jwk-set-uri=${JWK_SET_URIhttp://localhost:8081/realms/eazybankdev/protocol/openid-connect/certs}
+```

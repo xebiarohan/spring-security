@@ -16,6 +16,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.password.HaveIBeenPwnedRestApiPasswordChecker;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
@@ -34,6 +35,9 @@ public class ProjectSecurityConfig {
 
     @Bean
     SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
+        JwtAuthenticationConverter jwtAuthenticationConverter = new JwtAuthenticationConverter();
+        jwtAuthenticationConverter.setJwtGrantedAuthoritiesConverter(new KeycloakRoleConverter());
+
         CsrfTokenRequestAttributeHandler csrfTokenRequestAttributeHandler = new CsrfTokenRequestAttributeHandler();
         http
                 .cors(corsConfig -> corsConfig.configurationSource(new CorsConfigurationSource() {
@@ -50,12 +54,11 @@ public class ProjectSecurityConfig {
                     }
                 }))
                 .sessionManagement(smc -> smc
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                        .invalidSessionUrl("/invalidSession").maximumSessions(3).maxSessionsPreventsLogin(false))
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .requiresChannel(rcc -> rcc.anyRequest().requiresInsecure())
                 .csrf(csrfConfig -> csrfConfig.csrfTokenRequestHandler(csrfTokenRequestAttributeHandler)
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                        .ignoringRequestMatchers("/contact","/error","/register","/apiLogin"))
+                        .ignoringRequestMatchers("/contact","/error","/register"))
 
                 .addFilterAfter(new CsrfCookieFilter(), BasicAuthenticationFilter.class)
                 .authorizeHttpRequests((requests) -> requests
@@ -65,47 +68,14 @@ public class ProjectSecurityConfig {
                         .requestMatchers("/myCards").hasRole("USER")
                         .requestMatchers("/user").authenticated()
                       //  .requestMatchers("/myAccount", "/myBalance","/user","/contact").authenticated()
-                        .requestMatchers("/myCards", "/error", "/register","/invalidSession","/notices","/apiLogin").permitAll());
-        // http.formLogin(formLoginConfig -> formLoginConfig.disable());
-        http.formLogin(Customizer.withDefaults());
-        http.httpBasic(hbc -> hbc.authenticationEntryPoint(new CustomBasicAuthenticationEntryPoint()));
+                        .requestMatchers("/myCards", "/error", "/register","/notices").permitAll());
+
+        http.oauth2ResourceServer(rsc -> rsc.jwt(jwtConfigurer ->
+                jwtConfigurer.jwtAuthenticationConverter(jwtAuthenticationConverter)));
+
         http.exceptionHandling(handler -> {
             handler.accessDeniedHandler(new CustomAccessDenialException());
         });
         return http.build();
     }
-
-//    @Bean
-//    public UserDetailsService userDetailsService() {
-//        UserDetails user = User.withUsername("user").password("{noop}User@12345#").authorities("read").build();
-//        // Admin@12345#
-//        UserDetails admin = User.withUsername("admin")
-//                .password("{bcrypt}$2a$12$bzsdxqSgifDM7bH1l6P4buhUzrQYVIEduuzEVrggn/3affDcW.goK").authorities("admin").build();
-//        return new InMemoryUserDetailsManager(user,admin);
-//    }
-
-//    @Bean
-//    public UserDetailsService userDetailsService(DataSource dataSource) {
-//        return new JdbcUserDetailsManager(dataSource);
-//    }
-
-//    @Bean
-//    public PasswordEncoder passwordEncoder() {
-//        return PasswordEncoderFactories.createDelegatingPasswordEncoder();
-//    }
-//
-//    @Bean
-//    public CompromisedPasswordChecker compromisedPasswordChecker() {
-//        return new HaveIBeenPwnedRestApiPasswordChecker();
-//    }
-
-//    @Bean
-//    public AuthenticationManager authenticationManager(UserDetailsService userDetailsService,
-//                                                       PasswordEncoder passwordEncoder) {
-//        EazyBankUsernamePasswordAuthenticationProvider authenticationProvider =
-//                new EazyBankUsernamePasswordAuthenticationProvider(userDetailsService, passwordEncoder);
-//        ProviderManager providerManager = new ProviderManager(authenticationProvider);
-//        providerManager.setEraseCredentialsAfterAuthentication(false);
-//        return  providerManager;
-//    }
 }
