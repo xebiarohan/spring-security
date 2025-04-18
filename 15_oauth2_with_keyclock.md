@@ -110,3 +110,67 @@
 ```
   spring.security.oauth2.resourceserver.jwt.jwk-set-uri=${JWK_SET_URIhttp://localhost:8081/realms/eazybankdev/protocol/openid-connect/certs}
 ```
+
+13. So the overall flow becomes:
+    - First we made the application a resource server by adding the resource server dependency in it
+    - After we add the config in the SecurityFilterChain to tell the auth server will issue the JWT token
+    - and that token can be validated using the certs present on the url that we added in the application.properties
+    - and then we also mapped how we want to parse the token to get data out of it using JwtAuthenticationConverter
+    - The certs are downloaded in the resource server when it receives first request 
+    - From second request resource server can validate it without any need to contact the auth server
+  
+```
+        http.oauth2ResourceServer(rsc -> rsc.jwt(jwtConfigurer ->
+                jwtConfigurer.jwtAuthenticationConverter(jwtAuthenticationConverter)));
+
+```
+
+14.  Opaque tokens
+    - First we need to create a converted to extract details from the token
+    - Then we need to add config related to opaque token in the application.properties file
+    - Then we have to change the cofig in the Security filter chain to tell resource server that it will receive opaque token instead of JWT
+
+```
+    public class KeycloakOpaqueRoleConverter implements OpaqueTokenAuthenticationConverter {
+        @Override
+        public Authentication convert(String introspectedToken, OAuth2AuthenticatedPrincipal authenticatedPrincipal) {
+            String username = authenticatedPrincipal.getAttribute("preferred_username");
+            Map<String, Object> realmAccess = authenticatedPrincipal.getAttribute("realm_access");
+            Collection<GrantedAuthority> roles = ((List<String>) realmAccess.get("roles"))
+                    .stream().map(roleName -> "ROLE_" + roleName)
+                    .map(SimpleGrantedAuthority::new)
+                    .collect(Collectors.toList());
+            return new UsernamePasswordAuthenticationToken(authenticatedPrincipal.getName(), null,
+                    roles);
+        }
+    }
+```
+
+```
+    spring.security.oauth2.resourceserver.opaque.introspection-uri= ${INTROSPECT_URI:http://localhost:8081/realms/eazybankdev/protocol/openid-connect/token/introspect}
+    spring.security.oauth2.resourceserver.opaque.introspection-client-id=${INTROSPECT_ID:eazybankintrospect}
+    spring.security.oauth2.resourceserver.opaque.introspection-client-secret=${INTROSPECT_SECRET:8NKFTv6dBEQgbze8AXyZ1R2LrC999XKk}
+
+```
+
+```
+    http.oauth2ResourceServer(rsc -> rsc.opaqueToken(otc ->
+            otc.authenticationConverter(new KeycloakOpaqueRoleConverter())
+                    .introspectionUri(this.introspectionUri).introspectionClientCredentials(this.clientId, this.clientSecret)));
+```
+
+
+15.  To read config values of application properties in classes
+
+```
+    @Value("${spring.security.oauth2.resourceserver.opaque.introspection-uri}")
+    String introspectionUri;
+
+    @Value("${spring.security.oauth2.resourceserver.opaque.introspection-client-id}")
+    String clientId;
+
+    @Value("${spring.security.oauth2.resourceserver.opaque.introspection-client-secret}")
+    String clientSecret;
+```
+
+16. Authorization code grant type flow
